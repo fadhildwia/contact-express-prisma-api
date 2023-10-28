@@ -5,8 +5,8 @@ import {
   loginUserValidation,
   registerUserValidation,
   updateUserValidation,
-} from "../validations/user-validation.js";
-import { validate } from "../validations/validation.js";
+} from "../../validations/user-validation.js";
+import { validate } from "../../validations/validation.js";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 
