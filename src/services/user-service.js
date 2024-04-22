@@ -8,7 +8,7 @@ import {
 } from "../validations/user-validation.js";
 import { validate } from "../validations/validation.js";
 import bcrypt from "bcrypt";
-import { v4 as uuid } from "uuid";
+import jwt from 'jsonwebtoken'
 
 const register = async (request) => {
   const user = validate(registerUserValidation, request);
@@ -59,26 +59,33 @@ const login = async (request) => {
     throw new ResponseError(401, "Username or password wrong");
   }
 
-  const token = uuid().toString();
+  const accessToken = jwt.sign({ userId: user.username }, process.env.JWT_SECRET_KEY, { expiresIn: '10h' });
+  const refreshToken = jwt.sign({ userId: user.username }, process.env.JWT_SECRET_KEY, { expiresIn: '1d' });
+
   return prismaClient.user.update({
     data: {
-      token: token,
+      accessToken: accessToken,
+      refreshToken: refreshToken
     },
     where: {
       username: user.username,
     },
     select: {
-      token: true,
+      username: true,
+      password: true,
+      accessToken: true,
+      refreshToken: true
     },
   });
 };
 
-const get = async (username) => {
-  username = validate(getUserValidation, username);
+const get = async (authHeader) => {
+  const accessToken = authHeader.split(' ')[1];
+  const decoded = jwt.verify(accessToken, process.env.JWT_SECRET_KEY);
 
   const user = await prismaClient.user.findUnique({
     where: {
-      username: username,
+      username: decoded.userId,
     },
     select: {
       username: true,
@@ -126,12 +133,13 @@ const update = async (request) => {
   });
 };
 
-const logout = async (username) => {
-  username = validate(getUserValidation, username);
+const logout = async (authHeader) => {
+  const accessToken = authHeader.split(' ')[1];
+  const decoded = jwt.verify(accessToken, process.env.JWT_SECRET_KEY);
 
   const user = await prismaClient.user.findUnique({
     where: {
-      username: username,
+      username: decoded.userId,
     },
   });
 
@@ -141,10 +149,11 @@ const logout = async (username) => {
 
   return prismaClient.user.update({
     where: {
-      username: username,
+      username: decoded.userId,
     },
     data: {
-      token: null,
+      accessToken: null,
+      refreshToken: null
     },
     select: {
       username: true,

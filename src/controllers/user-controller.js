@@ -24,8 +24,8 @@ const login = async (req, res, next) => {
 
 const get = async (req, res, next) => {
   try {
-    const username = req.user.username;
-    const result = await userService.get(username);
+    const token = req.header("Authorization");
+    const result = await userService.get(token);
     res.status(200).json({
       data: result,
     });
@@ -36,9 +36,7 @@ const get = async (req, res, next) => {
 
 const update = async (req, res, next) => {
   try {
-    const username = req.user.username;
     const request = req.body;
-    request.username = username;
 
     const result = await userService.update(request);
     res.status(200).json({
@@ -51,7 +49,8 @@ const update = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
-    await userService.logout(req.user.username);
+    const token = req.header("Authorization");
+    await userService.logout(token);
     res.status(200).json({
       data: "OK",
     });
